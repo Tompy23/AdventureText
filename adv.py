@@ -9,17 +9,32 @@ class Command:
 class CommandMove(Command):
     def __init__(self, parts):
         self.dir = parts[1].upper()
+        self.source = "MOVE"
+        self.participle = "Moving"
 
     def execute(self, p, a):
         myExit = p.area.get_exit(self.dir)
-        response = [Response("MOVE", "Moving " + DIRECTION_MAP[self.dir].name)]
-        response.extend(myExit.pass_thru())
-        p.set_area(myExit.area)
+        if not myExit == None:
+            response = [Response(self.source, self.participle + " " + DIRECTION_MAP[self.dir].name)]
+            response.extend(p.area.exit(a))
+            response.extend(myExit.pass_thru())
+            response.extend(myExit.area.enter(a))
+            p.set_area(myExit.area)
+        else:
+            response = [Response(self.source, "Can not move " + DIRECTION_MAP[self.dir].name)]
         return response
 
 
+class CommandQuit(Command):
+    def __init__(self, parts):
+        pass
+
+    def execute(self, p, a):
+        a.stop()
+        return [Response("QUIT", "Quitting")]
+
 class CommandSearch(Command):
-    def __init__(self):
+    def __init__(self, parts):
         pass
 
     def execute(self, p, a):
@@ -28,7 +43,10 @@ class CommandSearch(Command):
 
 class CommandFactory:
     def __init__(self):
-        self.commands = dict([("MOVE", CommandMove), ("SEARCH", CommandSearch)]);
+        self.commands = dict([
+            ("MOVE", CommandMove),
+            ("QUIT", CommandQuit),
+            ("SEARCH", CommandSearch)]);
 
     def create_command(self, parts):
         return self.commands[parts[0].upper()](parts)
@@ -51,10 +69,19 @@ class Area:
         return self.dirDescription[DIRECTION.index(dir)]
 
     def get_exit(self, dir):
-        return self.exits[dir.upper()]
+        if not dir.upper() in self.exits:
+            return None
+        else:
+            return self.exits[dir.upper()]
 
     def install_exit(self, exit):
         self.exits[exit.direction.name.upper()] = exit
+
+    def exit(self, a):
+        return [Response(self.id, "Leaving")]
+
+    def enter(self, a):
+        return [Response(self.id, "Entering"), Response(self.id, self.description)]
 
 
 class Exit:
@@ -67,7 +94,7 @@ class Exit:
         self.opposite = exit;
 
     def pass_thru(self):
-        response = [(Response("[Exit|" + self.area.id + "]", self.description))]
+        response = [(Response("Exit-" + self.area.id, self.description))]
         return response
 
 
@@ -165,6 +192,10 @@ class Adventure:
         self.areas["room1"].install_exit(self.exits["exit12"])
 
         p.set_area(self.areas["room1"])
+
+    def stop(self):
+        self.proceed = False
+
 
 def main():
     p = get_player()
