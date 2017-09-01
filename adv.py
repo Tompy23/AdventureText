@@ -35,10 +35,18 @@ class CommandQuit(Command):
 
 class CommandSearch(Command):
     def __init__(self, parts):
-        pass
+        if len(parts)== 1:
+            self.type = "AREA"
+        elif len(parts) == 2:
+            self.type = "DIRECTION"
+            self.target = parts[1]
 
     def execute(self, p, a):
-        print("Searching")
+        if self.type == "AREA":
+            response = [Response("SEARCH", p.area.description)]
+        elif self.type == "DIRECTION":
+            response = [Response("SEARCH", "NOT IMPLEMENTED")]
+        return response
 
 
 class CommandFactory:
