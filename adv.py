@@ -43,9 +43,12 @@ class CommandSearch(Command):
 
     def execute(self, p, a):
         if self.type == "AREA":
-            response = [Response("SEARCH", p.area.description)]
+            response = [Response("SEARCH", p.area.searchDescription)]
         elif self.type == "DIRECTION":
-            response = [Response("SEARCH", "NOT IMPLEMENTED")]
+            if not self.target in DIRECTION:
+                response = [Response("SEARCH", "Not a direction")]
+            else:
+                response = [Response("SEARCH", DIRECTION_MAP[self.target].)]
         return response
 
 
