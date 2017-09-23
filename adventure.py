@@ -1,23 +1,32 @@
-import adv
+import adv.basic as adv
+import adv.area as area
+
 
 class Adventure:
     def __init__(self, p):
         self.proceed = True
-        self.rooms = {
-        "room1": adv.Area("room1", "Nice room", "Really nice room"),
-        "room2": adv.Area("room2", "A bedroom", "Bed on the west wall and a desk on the north wall")
+        self.areas = {
+            "room1": area.Area("room1", "Nice room", "Really nice room", ["Looks like a door", "wall", "void", "wall"]),
+            "room2": area.Area("room2", "A bedroom", "Bed on the west wall and a desk on the north wall")
         }
 
         self.exits = {
-            "exit12": adv.Exit(adv.DIRECTION_NORTH, self.rooms["room2"])
+                "exit12": area.Exit(adv.DIRECTION_NORTH, self.areas["room2"]),
+                "exit21": area.Exit(adv.DIRECTION_SOUTH, self.areas["room1"])
             }
 
-        self.rooms["room1"].install_exit(self.exits["exit12"])
+        self.areas["room1"].install_exit(self.exits["exit12"])
+        self.areas["room2"].install_exit(self.exits["exit21"])
 
-        p.set_room("room1")
+        p.set_area(self.areas["room1"])
+
+    def stop(self):
+        self.proceed = False
+
 
 def main():
-    adv.start(Adventure(adv.get_player()))
+    p = adv.get_player()
+    adv.start(p, Adventure(p))
 
 if __name__ == "__main__":
     main()
