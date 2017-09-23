@@ -2,6 +2,7 @@ import adv.basic as adv
 import adv.area as area
 import adv.start as start
 
+
 class Adventure:
     def __init__(self, p):
         self.proceed = True
@@ -27,6 +28,7 @@ class Adventure:
 def main():
     p = start.get_player()
     start.start(p, Adventure(p))
+
 
 if __name__ == "__main__":
     main()
