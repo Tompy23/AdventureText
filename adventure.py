@@ -1,6 +1,6 @@
 import adv.basic as adv
 import adv.area as area
-
+import adv.start as start
 
 class Adventure:
     def __init__(self, p):
@@ -25,8 +25,8 @@ class Adventure:
 
 
 def main():
-    p = adv.get_player()
-    adv.start(p, Adventure(p))
+    p = start.get_player()
+    start.start(p, Adventure(p))
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,6 @@
 import adv.basic as adv
+import adv.command as command
+
 
 # Startup functions
 
@@ -9,8 +11,8 @@ def get_player():
 
 
 def start(player, adventure):
-    parser = adv.command.CommandParser()
-    factory = adv.command.CommandFactory()
+    parser = command.CommandParser()
+    factory = command.CommandFactory()
     while adventure.proceed:
         myInput = parser.get_command()
         myCommand = factory.create_command(myInput.split())
