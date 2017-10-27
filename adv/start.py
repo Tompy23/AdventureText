@@ -1,5 +1,6 @@
 import adv.basic as adv
 import adv.command as command
+import adv.response as resp
 
 
 # Startup functions
@@ -17,7 +18,7 @@ def start(player, adventure):
         myInput = parser.get_command()
         myCommand = factory.create_command(myInput.split())
         if myCommand is None:
-            responses = [adv.Response("COMMAND", "Not a valid command")]
+            responses = [resp.Response("COMMAND", "Not a valid command")]
         else:
             responses = myCommand.execute(player, adventure)
         for r in responses:

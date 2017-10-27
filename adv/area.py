@@ -1,4 +1,5 @@
 import adv.basic as adv
+import adv.response as resp
 
 
 class Area:
@@ -8,7 +9,8 @@ class Area:
                  searchDescription="Nothing to see",
                  dirDescription=("", "", "", "", "", ""),
                  enterDescription="Entering",
-                 exitDescription="Leaving"):
+                 exitDescription="Leaving",
+                 items=[]):
         self.name = name
         self.description = description
         self.searchDescription = searchDescription
@@ -17,7 +19,9 @@ class Area:
         self.dirDescription = dirDescription
         self.enterDescription = enterDescription
         self.exitDescription = exitDescription
+        self.items = items
         self.exits = {}
+        self.searchActions = list([])
 
     def get_dir_description(self, d):
         return self.dirDescription[adv.DIRECTION.index(d)]
@@ -32,10 +36,19 @@ class Area:
         self.exits[e.direction.name.upper()] = e
 
     def exit(self, p, a):
-        return [adv.Response(self.name, self.exitDescription)]
+        return [resp.Response(self.name, self.exitDescription)]
 
     def enter(self, p, a):
-        return [adv.Response(self.name, self.enterDescription), adv.Response(self.name, self.description)]
+        return [resp.Response(self.name, self.enterDescription), resp.Response(self.name, self.description)]
+
+    def add_item(self, item):
+        self.items.append(item)
+
+    def get_item(self, itemName):
+        for i in self.items:
+            if i.description.upper() == itemName:
+                return i
+        return None
 
 
 class Exit:
@@ -49,5 +62,5 @@ class Exit:
         self.opposite = e
 
     def pass_thru(self, p, a):
-        response = [(adv.Response("Exit-" + self.area.name, self.description))]
+        response = [(resp.Response("Exit-" + self.area.name, self.description))]
         return response

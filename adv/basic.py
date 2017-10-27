@@ -1,16 +1,25 @@
-class Response:
-    def __init__(self, source, text):
-        self.source = source
-        self.text = text
-
-
 class Player:
     def __init__(self, name):
         self.name = name
         self.area = None
+        self.inventory = list([])
+        self.equipped = list([])
 
     def set_area(self, area):
         self.area = area
+
+    def add_inventory(self, item):
+        self.inventory.append(item)
+
+    def equip(self, item):
+        if len(self.equipped) <= 2 and self.inventory.__contains__(item):
+            self.inventory.remove(item)
+            self.equipped.append(item)
+
+    def store(self, item):
+        if self.equipped.__contains__(item):
+            self.equipped.remove(item)
+            self.inventory.append(item)
 
 
 class Direction:
@@ -37,6 +46,10 @@ DIRECTION_MAP = {
 
 def get_direction(d):
     return DIRECTION_MAP[d.upper()]
+
+
+def is_direction(d):
+    return DIRECTION.__contains__(d)
 
 
 def get_dir_index(d):
