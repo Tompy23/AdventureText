@@ -21,7 +21,7 @@ class Area:
         self.exitDescription = exitDescription
         self.items = items
         self.exits = {}
-        self.searchActions = list([])
+        self.searchActions = []
 
     def get_dir_description(self, d):
         return self.dirDescription[adv.DIRECTION.index(d)]
@@ -44,9 +44,9 @@ class Area:
     def add_item(self, item):
         self.items.append(item)
 
-    def get_item(self, itemName):
+    def get_item(self, itemDesc):
         for i in self.items:
-            if i.description.upper() == itemName:
+            if i.description.upper() == itemDesc:
                 return i
         return None
 

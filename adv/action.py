@@ -1,8 +1,15 @@
-import adv.response as resp
+import adv.basic as adv
+
+# perform()
+# Params - See specific type of action, but any reference to Items must be an Item object
+# return - list of Response objects
+#
+# The classes are grouped by type, all of the same type have the same perform() signature
 
 
 class Action:
-    def __init__(self, count=-1):
+    def __init__(self, source, count=-1):
+        self.source = "Action - " + source
         self.count = count
 
     def is_complete(self):
@@ -13,67 +20,118 @@ class Action:
             self.count = self.count - 1
 
 
-class ActionResponse(Action):
+class Response(Action):
     def __init__(self, source, text):
-        super().__init__()
+        super().__init__("Response")
         self.source = source
         self.text = text
 
-    def perform(self, responseList):
-        responseList.append(resp.Response(self.source, self.text))
-        return responseList
-
-
-class ActionMakeItemVisible(Action):
-    def __init__(self, item, count=1):
-        super().__init__(count)
-        self.item = item
-
     def perform(self):
+        response = [adv.Response(self.source, self.text)]
+        return response
+
+
+# Property setters
+#
+# These actions set a property direction on a defined item.
+# The adventure object is passed in to help with item lookup
+
+class ItemVisible(Action):
+    def __init__(self, targetItem, count=1):
+        super().__init__("ItemInvisible", count)
+        self.targetItem = targetItem
+
+    def perform(self, a):
         if not self.is_complete():
-            self.item.visible = True
+            if self.targetItem is not None:
+                self.targetItem.visible = True
         self.complete()
+        return []
 
 
-class UseOnItemTrigger(Action):
-    def __init__(self, action, target, count=-1):
-        super().__init__(count=count)
-        self.target = target
-        self.action = action
+# Use Actions
+#
+# These actions are placed on an Item (the source) and used on another item (the target)
+# The target name is passed in during construction.  The item object is passed in during perform.  These are checked
+# to make sure they are the same when performing the action.
 
-    def perform(self, p):
-        if p.area.items.__contains__(self.target) or p.equipped.__contains__(self.target):
-            self.action.perform(self.target)
+class Open(Action):
+    def __init__(self, targetItem):
+        super().__init__("Open")
+        self.targetItem = targetItem
 
-
-class OpenChestAction(Action):
-    def __init__(self, chest):
-        super().__init__()
-        self.chest = chest
-
-    def perform(self):
+    def perform(self, proposedTargetItem):
+        response = []
         if not self.is_complete():
-            self.chest.open = True
+            if (self.targetItem is None or self.targetItem == proposedTargetItem) and proposedTargetItem.can("open"):
+                proposedTargetItem.props["open"] = True
+                response.append(adv.Response(self.source, self.targetItem.name + " is now open."))
+            else:
+                response.append(adv.Response(self.source,
+                                "Are you sure you want to try and open " + proposedTargetItem.description + "?"))
+        else:
+            response.append(adv.Response(self.source, self.targetItem + " cannot be opened anymore."))
         self.complete()
+        return response
 
 
-class CloseChestAction(Action):
-    def __init__(self, chest):
-        super().__init__()
-        self.chest = chest
+class Close(Action):
+    def __init__(self, targetItem):
+        super().__init__("Close")
+        self.targetItem = targetItem
 
-    def perform(self):
+    def perform(self, proposedTargetItem):
+        response = []
         if not self.is_complete():
-            self.chest.open = False
+            if (self.targetItem is None or self.targetItem == proposedTargetItem) and proposedTargetItem.can("open"):
+                proposedTargetItem.props["open"] = False
+                response.append(adv.Response(self.source, self.targetItem.name + " is now closed."))
+            else:
+                response.append(adv.Response(self.source,
+                                "Are you sure you want to try and close " + proposedTargetItem + "?"))
+        else:
+            response.append(adv.Response(self.source, proposedTargetItem + " cannot be closed anymore."))
         self.complete()
+        return response
 
 
-class ToggleLockChestAction(Action):
-    def __init__(self, chest):
-        super().__init__()
-        self.chest = chest
+class ToggleLock(Action):
+    def __init__(self, targetItem):
+        super().__init__("ToggleLock")
+        self.targetItem = targetItem
 
-    def perform(self):
+    def perform(self, proposedTargetItem):
+        response = []
         if not self.is_complete():
-            self.chest.locked = not self.chest.locked
+            if (self.targetItem is None or self.targetItem == proposedTargetItem) and proposedTargetItem.can("lock"):
+                proposedTargetItem.props["lock"] = not proposedTargetItem.props["lock"]
+                response.append(adv.Response(self.source,
+                                             proposedTargetItem.description + " is now " + "locked."
+                                             if proposedTargetItem.check("lock") else "unlocked."))
+            else:
+                response.append(adv.Response(self.source, proposedTargetItem.description + " does not have a lock."))
+        else:
+            response.append(adv.Response(self.source, "This cannot be done to " + proposedTargetItem.description + "."))
         self.complete()
+        return response
+
+
+# Triggers
+#
+# These are actions that will contain a set of actions which will be performed based on the triggers implementation
+class IfOpen(Action):
+    def __init__(self, targetItem, actions):
+        super().__init__("IfOpen")
+        self.targetItem = targetItem
+        self.actions = actions
+
+    def perform(self, proposedTargetItem):
+        response = []
+        if not self.is_complete():
+            if (self.targetItem is None or self.targetItem == proposedTargetItem) and proposedTargetItem.check("open"):
+                for a in self.actions:
+                    response.extend(a.perform(response, proposedTargetItem))
+        else:
+            response.append(adv.Response(self.source, "This cannot be done to " + proposedTargetItem.description + "."))
+        self.complete()
+        return response
