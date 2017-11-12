@@ -1,19 +1,17 @@
-import adv.basic as adv
+import adv.adventure as adv
 
 
 # execute()
 # p - The player object
 # a - The adventure object
 # return - list of Response objects
-
-
 class Command:
     def __init__(self, source="COMMAND", participle="Commanding"):
         self.source = "Command - " + source
         self.participle = participle
 
     def execute(self, p, a):
-        return [adv.Response(self.source, "I do not understand")]
+        return [(self.source, "I do not understand")]
 
 
 # Close <target>
@@ -44,11 +42,11 @@ class Equip(Command):
         self.source = parts[3]
 
     def execute(self, p, a):
-        response = [adv.Response(self.source, self.target + " not equippable")]
+        response = [(self.source, "Not able to equip " + self.target + ".")]
         targetItem = a.get_item_from_list(p.inventory, self.target)
         if targetItem is not None and targetItem.can("put"):
             p.equip(targetItem.name)
-            response = [(adv.Response(self.source, self.participle + " " + self.target))]
+            response = [(self.source, self.participle + " " + self.target)]
         return response
 
 
@@ -60,13 +58,13 @@ class Inventory(Command):
     def execute(self, p, a):
         response = []
         if len(p.inventory) > 0:
-            response.append(adv.Response(self.source, self.participle))
+            response.append((self.source, self.participle))
             for i in p.inventory:
-                response.append(adv.Response(self.source, a.items[i].description))
+                response.append((self.source, i.description))
         if len(p.equipped) > 0:
-            response.append(adv.Response(self.source, "Equipped"))
+            response.append((self.source, "Equipped"))
             for j in p.equipped:
-                response.append(adv.Response(self.source, a.items[j].description))
+                response.append((self.source, j.description))
 
         return response
 
@@ -80,16 +78,16 @@ class Move(Command):
     def execute(self, p, a):
         myExit = p.area.get_exit(self.dir)
         if myExit is not None:
-            response = [adv.Response(self.source, self.participle + " " + adv.DIRECTION_MAP[self.dir].name)]
+            response = [(self.source, self.participle + " " + adv.DIRECTION_MAP[self.dir].name)]
             response.extend(p.area.exit(p, a))
             response.extend(myExit.pass_thru(p, a))
             response.extend(myExit.area.enter(p, a))
-            p.set_area(myExit.area)
+            p.area = myExit.area
         else:
             try:
-                response = [adv.Response(self.source, "Can not move " + adv.DIRECTION_MAP[self.dir].name)]
+                response = [(self.source, "Can not move " + adv.DIRECTION_MAP[self.dir].name)]
             except:
-                response = [adv.Response(self.source, "Unknown direction " + self.dir)]
+                response = [(self.source, "Unknown direction " + self.dir)]
         return response
 
 
@@ -111,7 +109,7 @@ class Quit(Command):
 
     def execute(self, p, a):
         a.stop()
-        return [adv.Response(self.source, self.participle)]
+        return [(self.source, self.participle)]
 
 
 # Search
@@ -143,22 +141,22 @@ class Search(Command):
         if self.type == "AREA":
             for act in p.area.searchActions:
                 act.perform()
-            response = [adv.Response(self.source, p.area.searchDescription)]
+            response = [(self.source, p.area.searchDescription)]
             for i in p.area.items:
                 if i.visible:
-                    response.append(adv.Response(self.source, i.searchDescription))
+                    response.append((self.source, i.searchDescription))
         elif self.type == "DIRECTION":
-            response = [adv.Response(self.source, p.area.dirDescription[adv.get_dir_index(self.target)])]
+            response = [(self.source, p.area.dirDescription[adv.get_dir_index(self.target)])]
         elif self.type == "IN":
             pass
         elif self.type == "ON":
             t = p.area.get_item(self.target)
             if t is None:
-                for a in p.equppied:
+                for a in p.equipped:
                     if a.name == self.target:
                         t = a
             if t is not None:
-                response.append(adv.Response(t.name, t.searchDescription))
+                response.append((t.name, t.searchDescription))
                 for x in t.searchActions:
                     response.append(x)
         return response
@@ -172,11 +170,11 @@ class Store(Command):
         self.source = parts[3]
 
     def execute(self, p, a):
-        response = [adv.Response(self.source, self.target + " not storable")]
+        response = [(self.source, self.target + " not storable")]
         targetItem = a.get_item_from_list(p.equipped, self.target)
         if targetItem is not None and targetItem.can("put"):
             p.store(targetItem.name)
-            response = [(adv.Response(self.source, self.participle + " " + self.target))]
+            response = [(self.source, self.participle + " " + self.target)]
         return response
 
 
@@ -214,12 +212,12 @@ class Use(Command):
         # Perform
         response = []
         if targetItem is None or sourceItem is None:
-            response.append(adv.Response(self.source, "Cannot use " + self.source + " on " + self.target))
+            response.append((self.source, "Cannot use " + self.source + " on " + self.target))
         else:
             if not targetItem.visible:
-                response.append(adv.Response(self.source, "I do not see " + self.target))
+                response.append((self.source, "I do not see " + self.target))
             else:
-                response.append(adv.Response(self.source, self.participle + " " + self.source))
+                response.append((self.source, self.participle + " " + self.source))
                 for action in sourceItem.useActions:
                     response.extend(action.perform(targetItem))
         return response

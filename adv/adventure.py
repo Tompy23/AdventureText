@@ -1,3 +1,21 @@
+
+
+# Adventure
+#
+class Adventure:
+    def __init__(self):
+        self.proceed = True
+
+    def stop(self):
+        self.proceed = False
+
+    def get_item_from_list(self, myList, myItemDesc):
+        for i in myList:
+            if i.description.upper() == myItemDesc.upper():
+                return self.items[i]
+        return None
+
+
 # Item
 #
 # name - unique identifier
@@ -125,7 +143,7 @@ def get_opposite_direction(d):
     return DIRECTION[i]
 
 
-class Response:
-    def __init__(self, source, text):
-        self.source = source
-        self.text = text
+PROPOSED_TARGET_ITEM="ProposedTargetItem"
+
+
+

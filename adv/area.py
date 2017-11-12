@@ -1,5 +1,4 @@
-import adv.basic as adv
-import adv.response as resp
+import adv.adventure as adv
 
 
 class Area:
@@ -10,7 +9,7 @@ class Area:
                  dirDescription=("", "", "", "", "", ""),
                  enterDescription="Entering",
                  exitDescription="Leaving",
-                 items=[]):
+                 items=()):
         self.name = name
         self.description = description
         self.searchDescription = searchDescription
@@ -36,10 +35,10 @@ class Area:
         self.exits[e.direction.name.upper()] = e
 
     def exit(self, p, a):
-        return [resp.Response(self.name, self.exitDescription)]
+        return [(self.name, self.exitDescription)]
 
     def enter(self, p, a):
-        return [resp.Response(self.name, self.enterDescription), resp.Response(self.name, self.description)]
+        return [(self.name, self.enterDescription), (self.name, self.description)]
 
     def add_item(self, item):
         self.items.append(item)
@@ -62,5 +61,5 @@ class Exit:
         self.opposite = e
 
     def pass_thru(self, p, a):
-        response = [(resp.Response("Exit-" + self.area.name, self.description))]
+        response = [("Exit-" + self.area.name, self.description)]
         return response
