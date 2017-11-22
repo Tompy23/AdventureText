@@ -1,50 +1,137 @@
 import adv.adventure as adv
+import adv.action as action
 
 
-# execute()
-# p - The player object
-# a - The adventure object
-# return - list of Response objects
 class Command:
+    """
+    Base command class
+    All commands are created in their constructor, assigning descriptions from the parts of the command.
+    Commands are then executed, usually firing off actions at certain times which are either attached to
+    the command itself or other items or other entities
+
+    Interface
+    ---------
+    Constructor() - Puts the parts of the command into variables
+    validate() - Validates the command by acquiring the Object Items from the descriptions
+    execute() - Executes the command and all its parts from legally constructed command
+    """
+
     def __init__(self, source="COMMAND", participle="Commanding"):
+        """
+        Base command constructor
+        :param source: Command name
+        :param participle: Word used when describing command response
+        """
         self.source = "Command - " + source
         self.participle = participle
 
+    def validate(self, p, a):
+        """
+        Default implementation
+        :param p: Player object
+        :param a: Adventure object
+        :return: Boolean, List of Responses
+        """
+        return True, []
+
     def execute(self, p, a):
+        """
+        Default Implementation
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         return [(self.source, "I do not understand")]
 
 
-# Close <target>
 class Close(Command):
+    """Close <target>"""
+
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("CLOSE", "Closing")
         self.target = parts[1]
 
     def execute(self, p, a):
-        pass
+        """
+        ITEM_PRE_CLOSE_ACTIONS
+        Close an item
+        ITEM_POST_CLOSE_ACTIONS
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
+        response = []
+        targetItem = adv.get_item_from_lists((p.area.items, p.equipped), self.target)
+
+        if targetItem is not None and targetItem.can(adv.ITEM_OPEN):
+            response.extend(
+                (x.perform(proposedTargetItem=targetItem) for x in targetItem.props(adv.ITEM_PRE_CLOSE_ACTIONS)) if
+                targetItem.can(adv.ITEM_PRE_CLOSE_ACTIONS) else [])
+            response.extend(action.Close(targetItem).perform(proposedTargetItem=targetItem))
+            response.extend(
+                (x.perform(proposedTargetItem=targetItem) for x in targetItem.props(adv.ITEM_POST_CLOSE_ACTIONS)) if
+                targetItem.can(adv.ITEM_POST_CLOSE_ACTIONS) else [])
+
+        return response
 
 
-# Drop <target>
 class Drop(Command):
+    """Drop <target>"""
+
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("DROP", "Dropping")
         self.target = parts[1]
 
     def execute(self, p, a):
-        pass
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
+        response = []
+        targetItem = adv.get_item_from_list(p.equipped, self.target)
+
+        if targetItem is not None:
+            response.extend(x.perform(proposedTargetItem=targetItem) for x in p.area.props(adv.AREA_PRE_DROP_ACTIONS))
+            response.extend(
+                (x.perform(proposedTargetItem=targetItem) for x in targetItem.props(adv.ITEM_PRE_DROP_ACTIONS)))
+            response.extend(action.Drop(targetItem).perform(proposedTargetItem=targetItem, player=p))
+            response.extend(
+                (x.perform(proposedTargetItem=targetItem) for x in targetItem.props(adv.ITEM_PRE_DROP_ACTIONS)))
+            response.extend(x.perform(proposedTargetItem=targetItem) for x in p.area.props(adv.AREA_PRE_DROP_ACTIONS))
+
+        return response
 
 
 # Equip <target> from <source>
 class Equip(Command):
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("EQUIP", "Equipping")
         self.target = parts[1]
-        self.source = parts[3]
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         response = [(self.source, "Not able to equip " + self.target + ".")]
-        targetItem = a.get_item_from_list(p.inventory, self.target)
-        if targetItem is not None and targetItem.can("put"):
+        targetItem = adv.get_item_from_list(p.inventory, self.target)
+        if targetItem is not None:
             p.equip(targetItem.name)
             response = [(self.source, self.participle + " " + self.target)]
         return response
@@ -53,9 +140,19 @@ class Equip(Command):
 # Inventory
 class Inventory(Command):
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("INVENTORY", "Listing inventory")
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         response = []
         if len(p.inventory) > 0:
             response.append((self.source, self.participle))
@@ -72,42 +169,103 @@ class Inventory(Command):
 # Move <direction>
 class Move(Command):
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("MOVE", "Moving")
-        self.dir = parts[1]
+        self.myDir = parts[1]
+        self.myExit = None
+
+    def validate(self, p, a):
+        """
+        Determine the direction of the move
+        :param p: Player object
+        :param a: Adventure object
+        :return: Boolean, List of Responses
+        """
+        response = []
+        self.myExit = p.area.get_exit(self.myDir)
+        if self.myExit is not None:
+            valid = True
+        else:
+            valid = False
+            try:
+                response.append((self.source, "Can not move " + adv.DIRECTION_MAP[self.myDir].name))
+            except:
+                response.append((self.source, "Unknown direction " + self.myDir))
+        return valid, response
 
     def execute(self, p, a):
-        myExit = p.area.get_exit(self.dir)
-        if myExit is not None:
-            response = [(self.source, self.participle + " " + adv.DIRECTION_MAP[self.dir].name)]
-            response.extend(p.area.exit(p, a))
-            response.extend(myExit.pass_thru(p, a))
-            response.extend(myExit.area.enter(p, a))
-            p.area = myExit.area
-        else:
-            try:
-                response = [(self.source, "Can not move " + adv.DIRECTION_MAP[self.dir].name)]
-            except:
-                response = [(self.source, "Unknown direction " + self.dir)]
+        """
+        Move through an exit to another area for a certain direction
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
+
+        response = [(self.source, self.participle + " " + adv.DIRECTION_MAP[self.dir].name)]
+        #response.extend(p.area.exit(p, a))
+        response.extend((x.perform() for x in p.area.enterActions))
+        #response.extend(self.myExit.pass_thru(p, a))
+        response.extend((x.perform() for x in self.myExit.exitActions))
+        #response.extend(self.myExit.area.enter(p, a))
+        response.extend((x.perform() for x in p.area.exitActions))
+        p.area = self.myExit.area
         return response
 
 
 # Open <target>
 class Open(Command):
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("OPEN", "Opening")
         self.target = parts[1]
 
     def execute(self, p, a):
-        pass
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
+        response = []
+        targetItem = adv.get_item_from_list(p.area.items, self.target)
+        if targetItem is not None and targetItem.can(adv.ITEM_OPEN) and not targetItem.check(adv.ITEM_OPEN):
+            if targetItem.can(adv.ITEM_LOCK):
+                if not targetItem.check(adv.ITEM_LOCK):
+                    targetItem.props[adv.ITEM_OPEN] = True
+                    response.append((self.source, self.target + " is now open"))
+                else:
+                    response.append((self.source, self.target + " is locked and cannot be opened"))
+            else:
+                targetItem.props[adv.ITEM_OPEN] = True
+                response.append((self.source, self.target + " is now open"))
+        else:
+            response.append((self.source, "Cannot open " + self.target))
+        return response
 
 
 # Quit
 class Quit(Command):
     def __init__(self, parts):
+        """
+        Constructor
+        :param parts:
+        """
         super().__init__("QUIT", "Quitting")
         pass
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         a.stop()
         return [(self.source, self.participle)]
 
@@ -137,6 +295,12 @@ class Search(Command):
                 self.target = parts[2]
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         response = list([])
         if self.type == "AREA":
             for act in p.area.searchActions:
@@ -167,14 +331,21 @@ class Store(Command):
     def __init__(self, parts):
         super().__init__("STORE", "Storing")
         self.target = parts[1]
-        self.source = parts[3]
+        if len(parts) == 4 and parts[2].upper() == "IN":
+            self.source = parts[3]
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         response = [(self.source, self.target + " not storable")]
-        targetItem = a.get_item_from_list(p.equipped, self.target)
-        if targetItem is not None and targetItem.can("put"):
-            p.store(targetItem.name)
-            response = [(self.source, self.participle + " " + self.target)]
+        targetItem = adv.get_item_from_list(p.equipped, self.target)
+        if targetItem is not None:
+            response = p.store(targetItem)
+            response.append((self.source, self.participle + " " + self.target))
         return response
 
 
@@ -185,11 +356,21 @@ class Take(Command):
         self.target = parts[1]
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         # Validate
-        targetItem = a.get_item_from_list(p.area.items, self.target)
+        targetItem = adv.get_item_from_list(p.area.items, self.target)
 
         # Perform
-        pass
+        if targetItem is not None and targetItem.description.upper() == self.target.upper() and targetItem.visible:
+            response = p.equip(targetItem)
+        else:
+            response = [(self.source, "Unable to take " + self.target)]
+        return response
 
 
 # Use <source> on <target>
@@ -201,13 +382,19 @@ class Use(Command):
             self.target = parts[3]
 
     def execute(self, p, a):
+        """
+
+        :param p: Player object
+        :param a: Adventure object
+        :return: A list of responses
+        """
         # Validate
-        sourceItem = a.get_item_from_list(p.equipped, self.source)
-        targetItem = a.get_item_from_list(p.area.items, self.target)
+        sourceItem = adv.get_item_from_list(p.equipped, self.source)
+        targetItem = adv.get_item_from_list(p.area.items, self.target)
         if targetItem is None:
-            targetItem = a.get_item_from_list(p.inventory, self.source)
+            targetItem = adv.get_item_from_list(p.inventory, self.source)
             if targetItem is None:
-                targetItem = a.get_item_from_list(p.equipped, self.source)
+                targetItem = adv.get_item_from_list(p.equipped, self.source)
 
         # Perform
         response = []
@@ -219,7 +406,7 @@ class Use(Command):
             else:
                 response.append((self.source, self.participle + " " + self.source))
                 for action in sourceItem.useActions:
-                    response.extend(action.perform(targetItem))
+                    response.extend(action.perform(proposedTargetItem=targetItem))
         return response
 
 

@@ -9,11 +9,20 @@ class Adventure:
     def stop(self):
         self.proceed = False
 
-    def get_item_from_list(self, myList, myItemDesc):
+
+def get_item_from_list(myList, myItemDesc):
         for i in myList:
             if i.description.upper() == myItemDesc.upper():
-                return self.items[i]
+                return i
         return None
+
+
+def get_item_from_lists(myLists, myItemDesc):
+    for l in myLists:
+        i = get_item_from_list(l, myItemDesc)
+        if i is not None:
+            return i
+    return None
 
 
 # Item
@@ -76,23 +85,34 @@ class Player:
         self.area = None
         self.inventory = []
         self.equipped = []
+        self.source = "PLAYER"
 
 
 # Equip and store needs to make sure there is "room" for all the things
     # Also, if this function is called, the item will be equipped if able, and only removed
     # from inventory if it started there.
     def equip(self, item):
+        response = []
         if len(self.equipped) <= 2:
             if item in self.inventory:
                 self.inventory.remove(item)
             self.equipped.append(item)
+            response.append((self.source, "Equipping " + item.description))
+        else:
+            response.append((self.source, "Already fully equipped."))
+        return response
 
 # Storing requires a source for storing the target item, so this is incomplete
     # We'll probably just pretend the backpack is where things are stored for now.
     def store(self, item):
+        response = []
         if item in self.equipped:
             self.equipped.remove(item)
             self.inventory.append(item)
+            response.append((self.source, "Storing " + item.description))
+        else:
+            response.append((self.source, item.description + " not available to store"))
+        return response
 
 
 # Direction
@@ -143,7 +163,17 @@ def get_opposite_direction(d):
     return DIRECTION[i]
 
 
-PROPOSED_TARGET_ITEM="ProposedTargetItem"
-
-
-
+# Constants
+PROPOSED_TARGET_ITEM = "proposedTargetItem"
+RESPONSE_SOURCE = 0
+RESPONSE_TEXT = 1
+ITEM_OPEN = "open"
+ITEM_LOCK = "lock"
+RESPONSE_TEXT = "text"
+ITEM_PRE_CLOSE_ACTIONS = "preCloseActions"
+ITEM_POST_CLOSE_ACTIONS = "postCloseActions"
+PLAYER = "player"
+ITEM_PRE_DROP_ACTIONS = "itemPreDropActions"
+ITEM_POST_DROP_ACTIONS = "itemPostDropActions"
+AREA_PRE_DROP_ACTIONS = "areaPreDropActions"
+AREA_POST_DROP_ACTIONS = "areaPostDropActions"

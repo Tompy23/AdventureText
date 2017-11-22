@@ -14,9 +14,11 @@ def go(player, adventure, parser, factory):
         if myCommand is None:
             responses = [("INPUT", "Not a valid command")]
         else:
-            responses = myCommand.execute(player, adventure)
+            valid, responses = myCommand.validate(player, adventure)
+            if valid:
+                responses.extend(myCommand.execute(player, adventure))
         for r in responses:
-            print("[" + r[0] + "] " + r[1])
+            print("[" + r[adv.RESPONSE_SOURCE] + "] " + r[adv.RESPONSE_TEXT])
 
 
 def main(myAdventure):

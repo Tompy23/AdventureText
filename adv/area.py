@@ -1,4 +1,5 @@
 import adv.adventure as adv
+import adv.action as act
 
 
 class Area:
@@ -8,7 +9,9 @@ class Area:
                  searchDescription="Nothing to see",
                  dirDescription=("", "", "", "", "", ""),
                  enterDescription="Entering",
+                 enterActions=[],
                  exitDescription="Leaving",
+                 exitActions=[],
                  items=()):
         self.name = name
         self.description = description
@@ -17,7 +20,9 @@ class Area:
             dirDescription.append("")
         self.dirDescription = dirDescription
         self.enterDescription = enterDescription
+        self.enterActions = enterActions
         self.exitDescription = exitDescription
+        self.exitActions = exitActions
         self.items = items
         self.exits = {}
         self.searchActions = []
@@ -35,10 +40,12 @@ class Area:
         self.exits[e.direction.name.upper()] = e
 
     def exit(self, p, a):
-        return [(self.name, self.exitDescription)]
+        return (x.perform for x in self.exitActions)
+        #return [(self.name, self.exitDescription)]
 
     def enter(self, p, a):
-        return [(self.name, self.enterDescription), (self.name, self.description)]
+        return (x.perform for x in self.enterActions)
+        #return [(self.name, self.enterDescription), (self.name, self.description)]
 
     def add_item(self, item):
         self.items.append(item)
@@ -51,15 +58,17 @@ class Area:
 
 
 class Exit:
-    def __init__(self, direction, area, description=""):
+    def __init__(self, direction, area, passThruActions=act.EXIT_PASS_THRU, description=""):
         self.direction = direction
         self.area = area
         self.description = description
         self.opposite = None
+        self.passThruActions = passThruActions
 
     def match_exit(self, e):
         self.opposite = e
 
     def pass_thru(self, p, a):
-        response = [("Exit-" + self.area.name, self.description)]
-        return response
+        return (x.perform for x in self.passThruActions)
+        #response = [("Exit-" + self.area.name, self.description)]
+        #return response
